@@ -1,0 +1,125 @@
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<style>
+
+path {
+
+  stroke: black;
+  stroke-width: .5;
+  stroke-dasharray: 1;
+  fill: #afafaf;
+  
+}
+
+#neighborhoodPopover { 
+  position: absolute;     
+  text-align: center;         
+  padding: 2px;       
+  font: 12px sans-serif;    
+  background: #fff; 
+  border: 0px;    
+  border-radius: 8px;     
+  pointer-events: none;
+  opacity: 0;     
+}
+
+</style>
+
+<body>
+  <svg width="960" height="1720"></svg>
+  <div id='neighborhoodPopover'> </div>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://d3js.org/topojson.v1.min.js"></script>
+<script>
+
+
+d3.json("nyc.json", function(error, nyc) {
+  if (error) throw error;
+
+d3.csv("convGeoProbs.csv", function(error, convo) {
+  if (error) throw error;
+
+d3.csv("dohmhData.csv", function(error, dhmh) {
+if (error) throw error;
+console.log(dhmh)
+      
+
+// This is where you put in the topic or topics that you would like to filter for
+listVal = ['Housing Quality']
+function sizeF(val){
+rad = 0
+for (i = 0; i < convo.length; i++){
+    if (convo[i]['conv_ID'] == val.conv_ID){
+        let probsy = val.probs
+        let checker = (arr, target) => target.every(v => arr.includes(v));
+        if (checker(probsy,listVal) == true){
+            rad += 1
+        }
+        
+    }
+    
+}
+    return rad/10
+}
+var svg = d3.select("svg"),
+    width = +svg.attr("width"),
+    height = +svg.attr("height");
+  const projection = d3.geoMercator()
+    .fitExtent([[20, 20], [width, width]], nyc);
+  const path = d3.geoPath().projection(projection);
+  
+  svg.attr("fill", "none")
+    .attr("stroke", "white")
+    .attr('stroke-width','0.5px');
+  
+  svg.append('g').selectAll('path')
+    .data(nyc.features)
+    .enter().append('path')
+    .attr('d',path)
+    .attr('class','hood')
+    .style('fill','white')
+    .style('fill',function(d){ return 'rgba(0,0,255,' + d.properties.featureCount/20 + ')'})
+    .on("mouseenter", function(d) {
+      d3.select(this)
+      .style("stroke-width", 1.5)
+      .style("stroke-dasharray", 0)
+
+      d3.select("#neighborhoodPopover")
+      .transition()
+      .style("opacity", 1)
+      .style("left", (d3.event.pageX) + "px")
+      .style("top", (d3.event.pageY) + "px")
+      .text(d.properties.name)
+
+    })
+    .on("mouseout", function(d) { 
+      d3.select(this)
+      .style("stroke-width", .25)
+      .style("stroke-dasharray", 1)
+    });
+  
+  svg.append('g').selectAll('circle.feature')
+    .data(convo)
+    .enter().append('circle')
+    .attr('transform',function(d){
+      return 'translate(' + projection([d.long,d.lat]) + ')'
+    })
+    .attr('r',function(d){ return sizeF(d)})
+    .style('stroke','red')
+    .style('fill','orange');
+
+    svg.append('g').selectAll('circle.dhmh')
+    .data(dhmh)
+    .enter().append('circle')
+    .attr('transform',function(d){
+      return 'translate(' + projection([d.Longitude,d.Latitude]) + ')'
+    })
+    .attr('r',2)
+    .style('stroke','red')
+    .style('fill','blue');
+
+})})});
+</script>
+</body>
